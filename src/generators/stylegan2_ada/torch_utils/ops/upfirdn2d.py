@@ -26,12 +26,13 @@ _plugin = None
 def _init():
     global _inited, _plugin
     if not _inited:
+        _inited = True # hcsd-project: missing upstream, caused a rebuild attempt on every call.
         sources = ['upfirdn2d.cpp', 'upfirdn2d.cu']
         sources = [os.path.join(os.path.dirname(__file__), s) for s in sources]
         try:
             _plugin = custom_ops.get_plugin('upfirdn2d_plugin', sources=sources, extra_cuda_cflags=['--use_fast_math'])
-        except:
-            warnings.warn('Failed to build CUDA kernels for upfirdn2d. Falling back to slow reference implementation. Details:\n\n' + traceback.format_exc())
+        except Exception as e: # hcsd-project: short warning instead of a full traceback.
+            warnings.warn(f'CUDA kernels for upfirdn2d unavailable ({type(e).__name__}: {e}). Using the reference implementation.')
     return _plugin is not None
 
 def _parse_scaling(scaling):

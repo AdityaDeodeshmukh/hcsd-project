@@ -16,7 +16,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--images", nargs="+", required=True)
     parser.add_argument("--prompts", nargs="+", required=True)
-    parser.add_argument("--model", default="ViT-B-32")
+    # The OpenAI weights were trained with QuickGELU, hence the "-quickgelu" config.
+    parser.add_argument("--model", default="ViT-B-32-quickgelu")
     parser.add_argument("--pretrained", default="openai")
     args = parser.parse_args()
 

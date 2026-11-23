@@ -71,6 +71,8 @@ This is why the folder is added to `sys.path` and is not imported as a sub-packa
 - **Custom CUDA ops:** `bias_act` and `upfirdn2d` try to compile CUDA kernels.
   Without `ninja`/`nvcc` they print a warning and fall back to the reference PyTorch implementation.
   This is slower but fine for inference.
+  On Colab you will see one short warning per op, for example `CUDA kernels for upfirdn2d unavailable (RuntimeError: ninja not found)`.
+- **CLIP:** `examples/clip_rank.py` uses `ViT-B-32-quickgelu`, because the OpenAI weights were trained with QuickGELU.
 - **CPU:** `examples/generate.py` passes `force_fp32=True` on CPU, because FP16 layers are CUDA-only.
 - **Pinned packages on Colab/Kaggle:** these platforms pre-pin some packages (e.g. NumPy).
   If an entry in `requirements-colab.txt` conflicts, remove that entry.
@@ -83,4 +85,10 @@ This is why the folder is added to `sys.path` and is not imported as a sub-packa
 The upstream `LICENSE.txt` is kept.
 The **NVIDIA Source Code License is non-commercial**.
 
-Local change: the `click` CLI wrapper in `legacy.py` was removed, so `click` is not a dependency.
+Local changes (marked with `hcsd-project:` comments):
+
+- `legacy.py`: the `click` CLI wrapper was removed, so `click` is not a dependency.
+- `torch_utils/custom_ops.py`: fails fast when `ninja` or the CUDA toolkit is missing, instead of starting a build.
+- `torch_utils/ops/upfirdn2d.py`: sets `_inited = True` (missing upstream).
+  Without it, a failed build was retried on every call and flooded the output with warnings.
+- `torch_utils/ops/{bias_act,upfirdn2d}.py`: a one-line warning instead of a full traceback when the kernels are unavailable.

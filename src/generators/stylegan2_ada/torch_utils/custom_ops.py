@@ -57,6 +57,12 @@ def get_plugin(module_name, sources, **build_kwargs):
         print(f'Setting up PyTorch plugin "{module_name}"... ', end='', flush=True)
 
     try: # pylint: disable=too-many-nested-blocks
+        # hcsd-project: fail fast when the build toolchain is missing (inference-only setup).
+        if shutil.which('ninja') is None:
+            raise RuntimeError('ninja not found')
+        if torch.utils.cpp_extension.CUDA_HOME is None:
+            raise RuntimeError('CUDA toolkit (nvcc) not found')
+
         # Make sure we can find the necessary compiler binaries.
         if os.name == 'nt' and os.system("where cl.exe >nul 2>nul") != 0:
             compiler_bindir = _find_compiler_bindir()
