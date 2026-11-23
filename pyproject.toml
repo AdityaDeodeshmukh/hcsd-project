@@ -1,0 +1,26 @@
+[project]
+name = "hcsd-project"
+version = "0.1.0"
+description = "Inference experiments with StyleGAN2-ADA (PyTorch) and CLIP"
+readme = "README.md"
+# Kept loose on purpose so the pre-installed Python on Colab/Kaggle works.
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "pillow",
+    "requests",
+    "tqdm",
+    "open_clip_torch",
+]
+
+[project.optional-dependencies]
+# Torch is only installed locally. Colab/Kaggle already ship a CUDA build of
+# torch/torchvision, so requirements-colab.txt is exported without this extra.
+local = [
+    "torch",
+    "torchvision",
+]
+
+[tool.uv]
+package = false
