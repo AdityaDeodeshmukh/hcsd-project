@@ -1,0 +1,78 @@
+[project]
+name = "hcsd-project"
+version = "0.1.0"
+description = "Identity-safe attribute editing in StyleGAN with CLIP-derived directions"
+readme = "README.md"
+requires-python = ">=3.10"   # keep loose: Colab/Kaggle Python versions change
+dependencies = [
+  # core numerics and I/O
+  "numpy",
+  "scipy",
+  "pandas",
+  "pillow",
+  "requests",
+  "tqdm",
+  "pyyaml",
+  "matplotlib",
+  "scikit-learn",          # optional SVM directions
+  # CLIP
+  "open_clip_torch",
+  # face detection / alignment (ElasticFace weights are downloaded separately)
+  "insightface",
+  "onnxruntime",
+]
+
+[project.optional-dependencies]
+# Local machines opt in with `uv sync --extra local`.
+# Colab/Kaggle skip it and use their preinstalled torch.
+local = [
+  "torch",
+  "torchvision",
+]
+# GPU face detection (replaces onnxruntime; install one or the other)
+onnx-gpu = [
+  "onnxruntime-gpu",
+]
+
+[project.scripts]
+hcsd-project = "hcsd_project.cli:main"
+
+[dependency-groups]
+dev = [
+  "ruff",
+  "pytest",
+  "jupyterlab",
+  "ipykernel",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.9,<0.14.0"]
+build-backend = "uv_build"
+
+# --- PyTorch wheels: CUDA build on Linux/Windows, default build elsewhere ---
+# Change cu128 to match your driver (cu118, cu121, cu124, cu126, ...).
+# Delete this block and the index below if you only use CPU or macOS.
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+# If insightface fails to build because of setuptools/Cython, try:
+# [tool.uv.extra-build-dependencies]
+# insightface = ["cython", "numpy", "setuptools<81"]
+
+# --- Keep tooling away from vendored NVIDIA code ---
+[tool.ruff]
+line-length = 100
+extend-exclude = ["third_party"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
