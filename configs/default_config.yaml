@@ -43,7 +43,7 @@ run:
   models: [ffhq]
   featurizers: [clip]   # which entries of `featurizers` to use
   prompts_file: configs/prompts.yaml  # CLIP attribute prompts file
-  n_latents: 1000     # W vectors to sample and save
+  n_latents: 5000     # W vectors to sample and save
   n_images: 16        # how many of them to render and save as PNG
   seed: 0
   psi: 1.0
