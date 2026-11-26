@@ -34,9 +34,16 @@ models:
     repo: third_party/stylegan2_ada
     weights: stylegan2_ada_afhqcat
 
+featurizers:
+  clip:
+    model: ViT-B-32-quickgelu
+    pretrained: openai
+
 run:
-  models: [ffhq]      # which entries of `models` to run, in order
-  n_latents: 5000     # W vectors to sample and save
+  models: [ffhq]
+  featurizers: [clip]   # which entries of `featurizers` to use
+  prompts_file: configs/prompts.yaml  # CLIP attribute prompts file
+  n_latents: 1000     # W vectors to sample and save
   n_images: 16        # how many of them to render and save as PNG
   seed: 0
   psi: 1.0

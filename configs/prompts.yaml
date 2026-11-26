@@ -1,0 +1,9 @@
+# CLIP attribute prompts for featurizers
+# Each model can override these with its own prompts
+
+clip:
+  # Attribute prompt pairs for CLIP featurizer: [[target, reference], ...]
+  attribute_prompt_list:
+    - ["photo of a face of a person who is smiling", "photo of a face of a person with a neutral expression"]
+    - ["photo of a person wearing glasses", "photo of a person without glasses"]
+    - ["photo of a person with dark hair", "photo of a person with light hair"]

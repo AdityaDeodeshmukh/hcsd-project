@@ -1,11 +1,13 @@
 import argparse
 import gc
-
+import json
 import numpy as np
 import yaml
+import os
 from PIL import Image
 
 from hcsd_project.config import load_config, resolve
+from hcsd_project.featurizers import load_featurizer
 from hcsd_project.generators import load_generator
 
 CHUNK = 8   # images rendered at once; keeps memory flat for large n_images
@@ -19,18 +21,44 @@ def run_model(cfg, name):
     gen = load_generator(cfg, name)
     print(f"[{name}] device={gen.device} w_dim={gen.w_dim} num_ws={gen.num_ws}")
 
+    # Load featurizer if configured (first one in cfg["featurizers"])
+    featurizer = None
+    featurizers_cfg = cfg.get("featurizers")
+    if isinstance(featurizers_cfg, dict) and featurizers_cfg:
+        featurizer = load_featurizer(cfg, next(iter(featurizers_cfg)))
+
+    # Pull attribute prompts from prompts.yaml; keep the featurizer defaults if none are found
+    if featurizer is not None and "prompts_file" in cfg.get("run", {}):
+        try:
+            from hcsd_project.config import load_text_prompts
+            prompts_cfg = load_text_prompts(cfg["run"]["prompts_file"])
+            prompts = prompts_cfg.get("clip", {}).get("attribute_prompt_list")
+            if prompts:
+                featurizer.attribute_prompt_list = prompts
+        except FileNotFoundError:
+            pass  # prompts file not found, use defaults
+
     w = gen.sample_w(r["n_latents"], r["seed"], r["psi"])
     np.save(out / "w.npy", w.cpu().numpy())
 
-    n_img = min(r["n_images"], len(w))
+    n_lat = len(w)
+    n_save = min(r["n_images"], n_lat)   # PNGs/thumbnails only for the first n_save
     thumbs = []
-    for start in range(0, n_img, CHUNK):
+    embedding_chunks = []
+
+    for start in range(0, n_lat, CHUNK):
+        print(f"Starting {start} chunk")
         imgs = gen.synthesize(w[start:start + CHUNK]).numpy()
+
         for i, im in enumerate(imgs, start):
-            pil = Image.fromarray(im)
-            pil.save(out / "images" / f"{i:06d}.png")
-            if len(thumbs) < 16:
+            if i < n_save:
+                pil = Image.fromarray(im)
+                pil.save(out / "images" / f"{i:06d}.png")
                 thumbs.append(np.asarray(pil.resize((256, 256))))
+
+        # One batched CLIP forward pass per chunk, for every latent
+        if featurizer is not None:
+            embedding_chunks.append(featurizer.encode_images(list(imgs)).cpu().numpy())
 
     if r.get("save_grid", True) and thumbs:
         cols = min(8, len(thumbs))
@@ -42,16 +70,30 @@ def run_model(cfg, name):
     with open(out / "config_used.yaml", "w") as f:
         yaml.safe_dump({k: v for k, v in cfg.items() if not k.startswith("_")}, f, sort_keys=False)
 
-    print(f"[{name}] saved {r['n_latents']} latents and {n_img} images to {out}")
+    if embedding_chunks:
+        all_embeddings = np.vstack(embedding_chunks)            # [n_lat, D], row k <-> w[k]
+        np.save(out / "embeddings.npy", all_embeddings)
 
-    del gen   # free GPU memory before the next model
+        # Attribute scores from the cached embeddings (text features are cached in the featurizer)
+        scores = featurizer.compute_image_attribute_similarity(all_embeddings)   # {target: [n_lat floats]}
+        print(scores)
+        with open(out / "attribute_scores.json", "w") as f:
+            json.dump({
+                "prompts": featurizer.attribute_prompt_list,
+                "scores": scores,
+            }, f, indent=2)
+
+        print(f"[{name}] saved embeddings {all_embeddings.shape} and {len(scores)} attribute score(s)")
+
+    print(f"[{name}] saved {n_lat} latents and {n_save} images to {out}")
+
+    del gen, featurizer   # free GPU memory before the next model
     gc.collect()
     try:
         import torch
         torch.cuda.empty_cache()
     except Exception:
         pass
-
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="hcsd-project", description=__doc__)

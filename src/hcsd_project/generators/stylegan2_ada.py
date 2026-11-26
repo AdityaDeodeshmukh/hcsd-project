@@ -20,6 +20,8 @@ class StyleGAN2ADA:
     def __init__(self, pkl, repo_dir, device=None):
         _ensure_path(repo_dir)
         import dnnlib, legacy  # noqa: E401
+        from torch_utils import custom_ops
+        custom_ops.verbosity = "none"      # no "Setting up PyTorch plugin ... Failed!
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
         with dnnlib.util.open_url(str(pkl)) as f:
             G = legacy.load_network_pkl(f)["G_ema"]
