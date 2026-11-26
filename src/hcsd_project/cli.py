@@ -4,8 +4,9 @@ import json
 import numpy as np
 import yaml
 import os
-from PIL import Image
 
+from tqdm import tqdm
+from PIL import Image
 from hcsd_project.config import load_config, resolve
 from hcsd_project.featurizers import load_featurizer
 from hcsd_project.generators import load_generator
@@ -46,8 +47,7 @@ def run_model(cfg, name):
     thumbs = []
     embedding_chunks = []
 
-    for start in range(0, n_lat, CHUNK):
-        print(f"Starting {start} chunk")
+    for start in tqdm(range(0, n_lat, CHUNK), desc=f"[{name}] generating", unit="chunk"):
         imgs = gen.synthesize(w[start:start + CHUNK]).numpy()
 
         for i, im in enumerate(imgs, start):
@@ -76,7 +76,6 @@ def run_model(cfg, name):
 
         # Attribute scores from the cached embeddings (text features are cached in the featurizer)
         scores = featurizer.compute_image_attribute_similarity(all_embeddings)   # {target: [n_lat floats]}
-        print(scores)
         with open(out / "attribute_scores.json", "w") as f:
             json.dump({
                 "prompts": featurizer.attribute_prompt_list,
