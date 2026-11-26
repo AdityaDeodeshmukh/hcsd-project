@@ -88,7 +88,7 @@ drive.mount("/content/drive")
 
 ```python
 import sys
-sys.path.insert(0, "/kaggle/working/hcsd-project/src")
+sys.path.insert(0, "/content/drive/hcsd-project/src")
 ```
 ```python
 from hcsd_project.config import load_config
