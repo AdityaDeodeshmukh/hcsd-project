@@ -1,0 +1,51 @@
+paths:
+  models_dir: models
+  outputs_dir: outputs
+
+weights:
+  stylegan2_ada_ffhq:
+    url: https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada-pytorch/pretrained/ffhq.pkl
+    filename: ffhq.pkl
+    sha256: null
+  stylegan2_ada_metfaces:
+    url: https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada-pytorch/pretrained/metfaces.pkl
+    filename: metfaces.pkl
+    sha256: null
+  stylegan2_ada_afhqcat:
+    url: https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada-pytorch/pretrained/afhqcat.pkl
+    filename: afhqcat.pkl
+    sha256: null
+
+models:
+  ffhq:
+    type: stylegan2_ada
+    repo: third_party/stylegan2_ada
+    weights: stylegan2_ada_ffhq
+    layer_groups:             # half-open ranges over the 18 W+ layers of the 1024px model
+      coarse: [0, 4]
+      middle: [4, 8]
+      fine: [8, 18]
+  metfaces:
+    type: stylegan2_ada
+    repo: third_party/stylegan2_ada
+    weights: stylegan2_ada_metfaces
+  afhqcat:
+    type: stylegan2_ada
+    repo: third_party/stylegan2_ada
+    weights: stylegan2_ada_afhqcat
+
+featurizers:
+  clip:
+    model: ViT-B-32-quickgelu
+    pretrained: openai
+
+run:
+  models: [ffhq]
+  featurizers: [clip]   # which entries of `featurizers` to use
+  prompts_file: configs/prompts.yaml  # CLIP attribute prompts file
+  n_latents: 5000     # W vectors to sample and save
+  n_images: 16        # how many of them to render and save as PNG
+  seed: 0
+  psi: 1.0
+  device: null        # null = cuda if available, else cpu
+  save_grid: true
